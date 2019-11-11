@@ -27,6 +27,7 @@ describe('LearnJS', function(){
 
 describe('problem view', function(){
     it('has a little that includes the problem nuber', function(){
+        var view = learnjs.problemView('1');
         expect(view.find('.title').text()).toEqual('Problem #1')
     });
 });
