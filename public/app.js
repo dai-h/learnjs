@@ -9,6 +9,10 @@ learnjs.problems = [
     {
         description: "Simple Math",
         code: "function problem() { return 42 === 6 * __; }" 
+    },
+    {
+        description: "Simple Math 2",
+        code: "function problem() { return 42 === 7 * __; }" 
     }
 ]
 
@@ -45,6 +49,15 @@ learnjs.problemView = function(data){
         return false;
     }
 
+    if(problemNumber < learnjs.problems.length){
+        var skipButton = learnjs.template('skip-button');
+        skipButton.find('a').attr('href','#problem-'+ (problemNumber +1 ));
+        $('.nav-list').append(skipButton);
+        view.bind('removingView',function(){
+            skipButton.remove();
+        });
+    }
+
     view.find('.title').text('Problem #' + problemNumber);
     view.find('.check-btn').click(checkAnswerClick);
     learnjs.applyObject(problem, view);
@@ -79,6 +92,7 @@ learnjs.showView = function(hash){
     var hashParts = hash.split('-');
     var viewFn = routes[hashParts[0]];
     if(viewFn){
+        learnjs.triggerEvent('removingView',[]);
         $('.view-container').empty().append(viewFn(hashParts[1]));
     }
 }
@@ -117,4 +131,11 @@ learnjs.flashElement = function(elem, content){
         elem.html(content);
         elem.fadeIn();
     });
+}
+
+/**
+ * @description view-container のみに有効なEventを実行する
+ */
+learnjs.triggerEvent = function(name,args){
+    $('.view-container>*').trigger(name,args);
 }
