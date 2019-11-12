@@ -18,8 +18,28 @@ learnjs.problems = [
 learnjs.problemView = function(data){
     var problemNumber = parseInt(data, 10);
     var view = $('.templates .problem-view').clone();
+    var problem = learnjs.problems[problemNumber-1];
+    var result = view.find('.result');
+
+    function checkAnswer(){
+        var answer = view.find('.answer').val();
+        var fnString = problem.code.replace('__',answer) + 'problem();'
+        return eval(fnString);
+    };
+
+    function checkAnswerClick(){
+        if(checkAnswer()){
+            learnjs.flashElement(result,'Correct!');
+        }else{
+            learnjs.flashElement(result,'Incorrect!');
+        }
+        return false;
+    }
+
     view.find('.title').text('Problem #' + problemNumber);
-    learnjs.applyObject(learnjs.problems[problemNumber-1], view);
+    view.find('.check-btn').click(checkAnswerClick);
+    learnjs.applyObject(problem, view);
+
     return view;
 }
 
@@ -54,4 +74,14 @@ learnjs.applyObject = function(obj, elem){
     for(var key in obj) {
         elem.find('[data-name="' + key +'"]').text(obj[key]);
     }
+}
+
+/**
+ * @description 視覚表現(フェードアウト)
+ */
+learnjs.flashElement = function(elem, content){
+    elem.fadeOut('fast', function(){
+        elem.html(content);
+        elem.fadeIn();
+    });
 }
