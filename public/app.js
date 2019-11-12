@@ -1,5 +1,7 @@
 'use strict';
-var learnjs = {};
+var learnjs = {
+    poolId: "us-east-1:ee8ad0ee-e8dc-43fc-870d-8f33e70c8de7"
+};
 
 learnjs.problems = [
     {
@@ -81,13 +83,25 @@ learnjs.buildCorrectFlash = function(problemNumber){
 }
 
 /**
+ * @description profile画面のView
+ */
+learnjs.profileView = function(){
+    var view = learnjs.template('profile-view');
+    learnjs.identity.done(function(identity){
+        view.find('.email').text(identity.email);
+    });
+    return view;
+}
+
+/**
  * @description ルーター関数 URLハッシュ値を引数に、view-containerに描画するHTMLを特定し設定する
  */
 learnjs.showView = function(hash){
     var routes = {
         '': learnjs.landingView,
         '#': learnjs.landingView,
-        '#problem' : learnjs.problemView
+        '#problem': learnjs.problemView,
+        '#profile': learnjs.profileView
     };
     var hashParts = hash.split('-');
     var viewFn = routes[hashParts[0]];
@@ -112,6 +126,13 @@ learnjs.appOnReady = function(problemNumber){
         learnjs.showView(window.location.hash);
     };
     learnjs.showView(window.location.hash);
+    learnjs.identity.done(learnjs.addProfileLink);
+}
+
+learnjs.addProfileLink = function(profile){
+    var link = learnjs.template('profile-link');
+    link.find('a').text(profile.email);
+    $('.signin-bar').prepend(link);
 }
 
 /**
@@ -122,6 +143,7 @@ learnjs.applyObject = function(obj, elem){
         elem.find('[data-name="' + key +'"]').text(obj[key]);
     }
 }
+
 
 /**
  * @description 視覚表現(フェードアウト)
@@ -139,3 +161,53 @@ learnjs.flashElement = function(elem, content){
 learnjs.triggerEvent = function(name,args){
     $('.view-container>*').trigger(name,args);
 }
+
+/**
+ * @description google sign in
+*/
+function googleSignIn(googleUser) {
+    console.log(googleUser);
+    var id_token = googleUser.getAuthResponse().id_token;
+    AWS.config.update({
+        region: 'us-east-1',
+        credentials: new AWS.CognitoIdentityCredentials({
+            IdentityPoolId: learnjs.poolId,
+            Logins:{
+                'accounts.google.com': id_token
+            }
+        })
+    });
+
+    function refresh(){
+        return gaip.auth2.getuAuthInstance().sighIn({
+            prompt: 'login'
+        }).then(function(userUpdate){
+            var creds = AWS.config.credentials;
+            var newToken = userUpdate.getAuthResponse().id_token;
+            creds.params.Logins['accounts.google.com'] = newToken;
+            return learnjs.awsRefresh();
+        });
+    }
+
+    learnjs.awsRefresh().then(function(id){
+        learnjs.identity.resolve({
+            id: id,
+            email: googleUser.getBasicProfile().getEmail(),
+            refresh: refresh
+        })
+    });
+}
+
+learnjs.awsRefresh = function(){
+    var deferred = new $.Deferred();
+    AWS.config.credentials.refresh(function(err){
+        if(err){
+            deferred.reject(err); 
+        }else{
+            deferred.resolve(AWS.config.credentials.identityId);
+        }
+    });
+    return deferred.promise();
+}
+
+learnjs.identity = new $.Deferred();
