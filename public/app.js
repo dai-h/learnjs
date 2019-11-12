@@ -13,7 +13,15 @@ learnjs.problems = [
 ]
 
 /**
- * @description problem画面のHTML要素
+ * @description top画面のView
+ */
+
+ learnjs.landingView = function(){
+    return learnjs.template('landing-view');
+ }
+
+/**
+ * @description problem画面のView
  */
 learnjs.problemView = function(data){
     var problemNumber = parseInt(data, 10);
@@ -29,7 +37,8 @@ learnjs.problemView = function(data){
 
     function checkAnswerClick(){
         if(checkAnswer()){
-            learnjs.flashElement(result,'Correct!');
+            learnjs.flashElement(result, learnjs.buildCorrectFlash(problemNumber));
+
         }else{
             learnjs.flashElement(result,'Incorrect!');
         }
@@ -44,10 +53,27 @@ learnjs.problemView = function(data){
 }
 
 /**
+ * @description problemView正解時の振る舞いをハンドリング
+ */
+learnjs.buildCorrectFlash = function(problemNumber){
+    var correctTemplate = learnjs.template('correct-flash');
+    var correctLink = correctTemplate.find('a');
+    if(problemNumber < learnjs.problems.length){
+        correctLink.attr('href','#problem-' + (problemNumber + 1));
+    }else{
+        correctLink.attr('href','');
+        correctLink.text("you're finished");
+    }
+    return correctTemplate
+}
+
+/**
  * @description ルーター関数 URLハッシュ値を引数に、view-containerに描画するHTMLを特定し設定する
  */
 learnjs.showView = function(hash){
     var routes = {
+        '': learnjs.landingView,
+        '#': learnjs.landingView,
         '#problem' : learnjs.problemView
     };
     var hashParts = hash.split('-');
@@ -55,6 +81,13 @@ learnjs.showView = function(hash){
     if(viewFn){
         $('.view-container').empty().append(viewFn(hashParts[1]));
     }
+}
+
+/**
+ * @description templateの読み込み
+ */
+learnjs.template = function(templateName){
+    return $('.templates .'+templateName).clone();
 }
 
 /**
