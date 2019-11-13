@@ -131,6 +131,27 @@ cat <<DOC
 DOC
 }
 
+function generate_table_policy_condition() {
+  local table_arn=$1
+cat <<DOC
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:Scan"
+      ],
+      "Resource": ["${table_arn}"],
+      "Condition": {
+        "ForAllValues:StringEquals": {
+          "dynamodb:Select": ["COUNT"]
+        }
+      }
+  }]
+}
+DOC
+}
+
 function create_cognito_auth_role() {
   local identity_pool_dir=$1
   local pool_id=$(support/jsed.py ${identity_pool_dir}/pool_info.json 'IdentityPoolId')
@@ -198,6 +219,18 @@ function create_table() {
     --policy-document file://${table_dir}/role_policy.json \
     --role-name ${role_name} \
     --policy-name ${table_name}_table_access
+}
+
+function add_policy_to_table() {
+  local table_dir=${1%/}
+  local table_name=$(basename $table_dir)
+  local role_name="${2}_cognito_authenticated"
+  local table_arn=$(support/jsed.py ${table_dir}/table_info.json 'Table.TableArn')
+  generate_table_policy_condition ${table_arn} > ${table_dir}/additional_policy/table_policy_condition.json
+  aws --profile $profile iam put-role-policy \
+    --policy-document file://${table_dir}/additional_policy/table_policy_condition.json \
+    --role-name ${role_name} \
+    --policy-name ${table_name}_table_access_condition
 }
 
 function build_bundle() {
@@ -358,6 +391,16 @@ case "$action" in
     check_aws
     if [[ $# -eq 3 ]]; then
       create_table ${2} ${3}
+    else
+      echo "Please specify a DynamoDB table configuration directory and identity pool name" 
+      exit 1
+    fi
+    ;;
+
+  add_policy_to_table)
+    check_aws
+    if [[ $# -eq 3 ]]; then
+      add_policy_to_table ${2} ${3}
     else
       echo "Please specify a DynamoDB table configuration directory and identity pool name" 
       exit 1

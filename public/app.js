@@ -35,10 +35,19 @@ learnjs.problemView = function(data){
     var problem = learnjs.problems[problemNumber-1];
     var result = view.find('.result');
     var answer = view.find('.answer');
+    var totalCollectCounter = view.find('.total-collect-counter');
 
     learnjs.fetchAnswer(problemNumber).then(function(data){
         if(data.Item){
             answer.val(data.Item.answer);
+        }
+    },function(err){
+        console.log(err);
+    });
+
+    learnjs.fetchCount(problemNumber).then(function(data){
+        if(data.Count){
+            totalCollectCounter.text(data.Count);
         }
     },function(err){
         console.log(err);
@@ -281,6 +290,24 @@ learnjs.fetchAnswer = function(problemId){
         };
         return learnjs.sendDBRequest(db.get(item),function(){
             learnjs.fetchAnswer(problemId);
+        });
+    });
+}
+
+/**
+ * @description Dynamo get count
+ */
+learnjs.fetchCount = function(problemId){
+    return learnjs.identity.then(function(identity){
+        var db = new AWS.DynamoDB.DocumentClient();
+        var params = {
+            TableName: 'learnjs',
+            Select: 'COUNT',
+            FilterExpression: 'problemId = :problemId',
+            ExpressionAttributeValues:{ ':problemId':problemId}
+        };
+        return learnjs.sendDBRequest(db.scan(params),function(){
+            return learnjs.fetchCount(problemId);
         });
     });
 }
