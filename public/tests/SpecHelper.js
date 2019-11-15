@@ -1,14 +1,14 @@
 var fixture;
 
-function loadFixture(path) {  
+function loadFixture() {
   var html;
   jQuery.ajax({
     url: '/index.html',
-    success: function(result) {
+    success: function (result) {
       html = result;
     },
     async: false
-  });          
+  });
   return $.parseHTML(html);
 }
 

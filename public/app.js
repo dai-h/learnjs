@@ -1,7 +1,9 @@
+/*globals AWS, gaip*/
 'use strict';
 var learnjs = {
-    poolId: "us-east-1:ee8ad0ee-e8dc-43fc-870d-8f33e70c8de7"
 };
+
+learnjs.poolId = "us-east-1:ee8ad0ee-e8dc-43fc-870d-8f33e70c8de7"
 
 learnjs.problems = [
     {
@@ -54,18 +56,35 @@ learnjs.problemView = function (data) {
     });
 
     function checkAnswer() {
-        var fnString = problem.code.replace('__', answer.val()) + 'problem();'
-        return eval(fnString);
-    };
+        var def = $.Deferred();
+        var test = problem.code.replace('__', answer.val()) + 'problem();'
+        var worker = new Worker('worker.js');
+        worker.onmessage = function (e) {
+            if (e.data) {
+                def.resolve(e.data);
+            } else {
+                def.reject();
+            }
+        }
+        worker.postMessage(test);
+        return def;
+    }
 
     function checkAnswerClick() {
-        if (checkAnswer()) {
-            learnjs.flashElement(result, learnjs.buildCorrectFlash(problemNumber));
+        checkAnswer().done(function () {
+            var flashContent = learnjs.buildCorrectFlash(problemNumber);
+            learnjs.flashElement(result, flashContent);
             learnjs.saveAnswer(problemNumber, answer.val());
-
-        } else {
+        }).fail(function () {
             learnjs.flashElement(result, 'Incorrect!');
-        }
+        })
+        // if (checkAnswer()) {
+        //     learnjs.flashElement(result, learnjs.buildCorrectFlash(problemNumber));
+        //     learnjs.saveAnswer(problemNumber, answer.val());
+
+        // } else {
+        //     learnjs.flashElement(result, 'Incorrect!');
+        // }
         return false;
     }
 
@@ -77,6 +96,8 @@ learnjs.problemView = function (data) {
             skipButton.remove();
         });
     }
+
+    learnjs.popularAnswersByHttpRequest(problemNumber);
 
     view.find('.title').text('Problem #' + problemNumber);
     view.find('.check-btn').click(checkAnswerClick);
@@ -139,7 +160,7 @@ learnjs.template = function (templateName) {
 /**
  * @description index.html読み込み完了後に呼び出される処理
  */
-learnjs.appOnReady = function (problemNumber) {
+learnjs.appOnReady = function () {
     window.onhashchange = function () {
         learnjs.showView(window.location.hash);
     };
@@ -184,6 +205,7 @@ learnjs.triggerEvent = function (name, args) {
  * @description google sign in
 */
 function googleSignIn(googleUser) {
+    // learnjs.googleSignIn = function (googleUser) {
     console.log(googleUser);
     var id_token = googleUser.getAuthResponse().id_token;
     AWS.config.update({
@@ -233,7 +255,7 @@ learnjs.identity = new $.Deferred();
 /**
  * @description Dynamo Access 
  */
-learnjs.sendDBRequest = function (req, retry) {
+learnjs.sendAWSRequest = function (req, retry) {
     var promise = new $.Deferred();
     req.on('error', function (error) {
         if (error.code === "CredentialsError") {
@@ -241,7 +263,7 @@ learnjs.sendDBRequest = function (req, retry) {
                 return identity.refresh().then(function () {
                     return retry();
                 }, function () {
-                    promise.reject(resp);
+                    promise.reject();
                 });
             });
         } else {
@@ -269,7 +291,7 @@ learnjs.saveAnswer = function (problemId, answer) {
                 answer: answer
             }
         };
-        return learnjs.sendDBRequest(db.put(item), function () {
+        return learnjs.sendAWSRequest(db.put(item), function () {
             return learnjs.saveAnswer(problemId, answer);
         });
     });
@@ -288,7 +310,7 @@ learnjs.fetchAnswer = function (problemId) {
                 problemId: problemId
             }
         };
-        return learnjs.sendDBRequest(db.get(item), function () {
+        return learnjs.sendAWSRequest(db.get(item), function () {
             learnjs.fetchAnswer(problemId);
         });
     });
@@ -298,7 +320,7 @@ learnjs.fetchAnswer = function (problemId) {
  * @description Dynamo get count
  */
 learnjs.fetchCount = function (problemId) {
-    return learnjs.identity.then(function (identity) {
+    return learnjs.identity.then(function () {
         var db = new AWS.DynamoDB.DocumentClient();
         var params = {
             TableName: 'learnjs',
@@ -306,8 +328,51 @@ learnjs.fetchCount = function (problemId) {
             FilterExpression: 'problemId = :problemId',
             ExpressionAttributeValues: { ':problemId': problemId }
         };
-        return learnjs.sendDBRequest(db.scan(params), function () {
+        return learnjs.sendAWSRequest(db.scan(params), function () {
             return learnjs.fetchCount(problemId);
         });
+    });
+}
+
+/**
+ * @description call aws service
+ */
+learnjs.popularAnswers = function (problemId) {
+    return learnjs.identity.then(function () {
+        var lambda = new AWS.Lambda();
+        return learnjs.sendAWSRequest(lambda.invoke({
+            FunctionName: 'learnjs_popularAnswers',
+            Payload: JSON.stringify({ problemNumber: problemId })
+        }), function () {
+            return learnjs.popularAnswers(problemId);
+        })
+    })
+}
+
+/**
+ * @description call aws service
+ */
+learnjs.popularAnswersByHttpRequest = function (problemId) {
+    return learnjs.identity.then(function () {
+        var postData = { "problemNumber": problemId };
+        var postDataStr = JSON.stringify(postData);
+        var xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4) {
+                if (xhr.status === 200) {
+                    console.log(xhr.responseText);
+                } else {
+                    console.log("error occuerd in the server side");
+                }
+            } else {
+                console.log("connecting...");
+            }
+        };
+        xhr.open('POST', "https://k3ttl4rxui.execute-api.us-east-1.amazonaws.com/production/popularanswers", true);
+        xhr.send(postDataStr);
+
+        // return learnjs.sendAWSRequest(, function () {
+        //     return learnjs.popularAnswersByHttpRequest(problemId);
+        // })
     });
 }
