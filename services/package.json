@@ -9,9 +9,11 @@
   "author": "Ben Rady",
   "license": "All Rights Reserved",
   "dependencies": {
-    "aws-sdk": "2.2.4"
+    "aws-sdk": "2.571.0"
   },
   "devDependencies": {
+    "eslint": "^6.6.0",
+    "eslint-plugin-jasmine": "^4.0.0",
     "jasmine": "2.3.1"
   }
 }

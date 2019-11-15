@@ -6,15 +6,15 @@ var learnjs = {
 learnjs.problems = [
     {
         description: "What is truth?",
-        code: "function problem() { return __; }" 
+        code: "function problem() { return __; }"
     },
     {
         description: "Simple Math",
-        code: "function problem() { return 42 === 6 * __; }" 
+        code: "function problem() { return 42 === 6 * __; }"
     },
     {
         description: "Simple Math 2",
-        code: "function problem() { return 42 === 7 * __; }" 
+        code: "function problem() { return 42 === 7 * __; }"
     }
 ]
 
@@ -22,58 +22,58 @@ learnjs.problems = [
  * @description top画面のView
  */
 
- learnjs.landingView = function(){
+learnjs.landingView = function () {
     return learnjs.template('landing-view');
- }
+}
 
 /**
  * @description problem画面のView
  */
-learnjs.problemView = function(data){
+learnjs.problemView = function (data) {
     var problemNumber = parseInt(data, 10);
     var view = $('.templates .problem-view').clone();
-    var problem = learnjs.problems[problemNumber-1];
+    var problem = learnjs.problems[problemNumber - 1];
     var result = view.find('.result');
     var answer = view.find('.answer');
     var totalCollectCounter = view.find('.total-collect-counter');
 
-    learnjs.fetchAnswer(problemNumber).then(function(data){
-        if(data.Item){
+    learnjs.fetchAnswer(problemNumber).then(function (data) {
+        if (data.Item) {
             answer.val(data.Item.answer);
         }
-    },function(err){
+    }, function (err) {
         console.log(err);
     });
 
-    learnjs.fetchCount(problemNumber).then(function(data){
-        if(data.Count){
+    learnjs.fetchCount(problemNumber).then(function (data) {
+        if (data.Count) {
             totalCollectCounter.text(data.Count);
         }
-    },function(err){
+    }, function (err) {
         console.log(err);
     });
 
-    function checkAnswer(){
-        var fnString = problem.code.replace('__',answer.val()) + 'problem();'
+    function checkAnswer() {
+        var fnString = problem.code.replace('__', answer.val()) + 'problem();'
         return eval(fnString);
     };
 
-    function checkAnswerClick(){
-        if(checkAnswer()){
+    function checkAnswerClick() {
+        if (checkAnswer()) {
             learnjs.flashElement(result, learnjs.buildCorrectFlash(problemNumber));
-            learnjs.saveAnswer(problemNumber,answer.val());
+            learnjs.saveAnswer(problemNumber, answer.val());
 
-        }else{
-            learnjs.flashElement(result,'Incorrect!');
+        } else {
+            learnjs.flashElement(result, 'Incorrect!');
         }
         return false;
     }
 
-    if(problemNumber < learnjs.problems.length){
+    if (problemNumber < learnjs.problems.length) {
         var skipButton = learnjs.template('skip-button');
-        skipButton.find('a').attr('href','#problem-'+ (problemNumber +1 ));
+        skipButton.find('a').attr('href', '#problem-' + (problemNumber + 1));
         $('.nav-list').append(skipButton);
-        view.bind('removingView',function(){
+        view.bind('removingView', function () {
             skipButton.remove();
         });
     }
@@ -88,13 +88,13 @@ learnjs.problemView = function(data){
 /**
  * @description problemView正解時の振る舞いをハンドリング
  */
-learnjs.buildCorrectFlash = function(problemNumber){
+learnjs.buildCorrectFlash = function (problemNumber) {
     var correctTemplate = learnjs.template('correct-flash');
     var correctLink = correctTemplate.find('a');
-    if(problemNumber < learnjs.problems.length){
-        correctLink.attr('href','#problem-' + (problemNumber + 1));
-    }else{
-        correctLink.attr('href','');
+    if (problemNumber < learnjs.problems.length) {
+        correctLink.attr('href', '#problem-' + (problemNumber + 1));
+    } else {
+        correctLink.attr('href', '');
         correctLink.text("you're finished");
     }
     return correctTemplate
@@ -103,9 +103,9 @@ learnjs.buildCorrectFlash = function(problemNumber){
 /**
  * @description profile画面のView
  */
-learnjs.profileView = function(){
+learnjs.profileView = function () {
     var view = learnjs.template('profile-view');
-    learnjs.identity.done(function(identity){
+    learnjs.identity.done(function (identity) {
         view.find('.email').text(identity.email);
     });
     return view;
@@ -114,7 +114,7 @@ learnjs.profileView = function(){
 /**
  * @description ルーター関数 URLハッシュ値を引数に、view-containerに描画するHTMLを特定し設定する
  */
-learnjs.showView = function(hash){
+learnjs.showView = function (hash) {
     var routes = {
         '': learnjs.landingView,
         '#': learnjs.landingView,
@@ -123,8 +123,8 @@ learnjs.showView = function(hash){
     };
     var hashParts = hash.split('-');
     var viewFn = routes[hashParts[0]];
-    if(viewFn){
-        learnjs.triggerEvent('removingView',[]);
+    if (viewFn) {
+        learnjs.triggerEvent('removingView', []);
         $('.view-container').empty().append(viewFn(hashParts[1]));
     }
 }
@@ -132,22 +132,22 @@ learnjs.showView = function(hash){
 /**
  * @description templateの読み込み
  */
-learnjs.template = function(templateName){
-    return $('.templates .'+templateName).clone();
+learnjs.template = function (templateName) {
+    return $('.templates .' + templateName).clone();
 }
 
 /**
  * @description index.html読み込み完了後に呼び出される処理
  */
-learnjs.appOnReady = function(problemNumber){
-    window.onhashchange = function(){
+learnjs.appOnReady = function (problemNumber) {
+    window.onhashchange = function () {
         learnjs.showView(window.location.hash);
     };
     learnjs.showView(window.location.hash);
     learnjs.identity.done(learnjs.addProfileLink);
 }
 
-learnjs.addProfileLink = function(profile){
+learnjs.addProfileLink = function (profile) {
     var link = learnjs.template('profile-link');
     link.find('a').text(profile.email);
     $('.signin-bar').prepend(link);
@@ -156,9 +156,9 @@ learnjs.addProfileLink = function(profile){
 /**
  * @description データバインディング関数
  */
-learnjs.applyObject = function(obj, elem){
-    for(var key in obj) {
-        elem.find('[data-name="' + key +'"]').text(obj[key]);
+learnjs.applyObject = function (obj, elem) {
+    for (var key in obj) {
+        elem.find('[data-name="' + key + '"]').text(obj[key]);
     }
 }
 
@@ -166,8 +166,8 @@ learnjs.applyObject = function(obj, elem){
 /**
  * @description 視覚表現(フェードアウト)
  */
-learnjs.flashElement = function(elem, content){
-    elem.fadeOut('fast', function(){
+learnjs.flashElement = function (elem, content) {
+    elem.fadeOut('fast', function () {
         elem.html(content);
         elem.fadeIn();
     });
@@ -176,8 +176,8 @@ learnjs.flashElement = function(elem, content){
 /**
  * @description view-container のみに有効なEventを実行する
  */
-learnjs.triggerEvent = function(name,args){
-    $('.view-container>*').trigger(name,args);
+learnjs.triggerEvent = function (name, args) {
+    $('.view-container>*').trigger(name, args);
 }
 
 /**
@@ -190,16 +190,16 @@ function googleSignIn(googleUser) {
         region: 'us-east-1',
         credentials: new AWS.CognitoIdentityCredentials({
             IdentityPoolId: learnjs.poolId,
-            Logins:{
+            Logins: {
                 'accounts.google.com': id_token
             }
         })
     });
 
-    function refresh(){
+    function refresh() {
         return gaip.auth2.getuAuthInstance().sighIn({
             prompt: 'login'
-        }).then(function(userUpdate){
+        }).then(function (userUpdate) {
             var creds = AWS.config.credentials;
             var newToken = userUpdate.getAuthResponse().id_token;
             creds.params.Logins['accounts.google.com'] = newToken;
@@ -207,7 +207,7 @@ function googleSignIn(googleUser) {
         });
     }
 
-    learnjs.awsRefresh().then(function(id){
+    learnjs.awsRefresh().then(function (id) {
         learnjs.identity.resolve({
             id: id,
             email: googleUser.getBasicProfile().getEmail(),
@@ -216,12 +216,12 @@ function googleSignIn(googleUser) {
     });
 }
 
-learnjs.awsRefresh = function(){
+learnjs.awsRefresh = function () {
     var deferred = new $.Deferred();
-    AWS.config.credentials.refresh(function(err){
-        if(err){
-            deferred.reject(err); 
-        }else{
+    AWS.config.credentials.refresh(function (err) {
+        if (err) {
+            deferred.reject(err);
+        } else {
             deferred.resolve(AWS.config.credentials.identityId);
         }
     });
@@ -233,22 +233,22 @@ learnjs.identity = new $.Deferred();
 /**
  * @description Dynamo Access 
  */
-learnjs.sendDBRequest = function(req, retry){
+learnjs.sendDBRequest = function (req, retry) {
     var promise = new $.Deferred();
-    req.on('error',function(error){
-        if(error.code === "CredentialsError"){
-            learnjs.identity.then(function(identity){
-                return identity.refresh().then(function(){
+    req.on('error', function (error) {
+        if (error.code === "CredentialsError") {
+            learnjs.identity.then(function (identity) {
+                return identity.refresh().then(function () {
                     return retry();
-                },function(){
+                }, function () {
                     promise.reject(resp);
                 });
             });
-        }else{
+        } else {
             promise.reject(error);
         }
     });
-    req.on('success', function(resp){
+    req.on('success', function (resp) {
         promise.resolve(resp.data);
     });
     req.send();
@@ -258,19 +258,19 @@ learnjs.sendDBRequest = function(req, retry){
 /**
  * @description Dynamo Register answer
  */
-learnjs.saveAnswer = function(problemId, answer){
-    return learnjs.identity.then(function(identity){
+learnjs.saveAnswer = function (problemId, answer) {
+    return learnjs.identity.then(function (identity) {
         var db = new AWS.DynamoDB.DocumentClient();
         var item = {
-            TableName : 'learnjs',
-            Item:{
+            TableName: 'learnjs',
+            Item: {
                 userId: identity.id,
                 problemId: problemId,
                 answer: answer
             }
         };
-        return learnjs.sendDBRequest(db.put(item),function(){
-            return learnjs.saveAnswer(problemId,answer);
+        return learnjs.sendDBRequest(db.put(item), function () {
+            return learnjs.saveAnswer(problemId, answer);
         });
     });
 }
@@ -278,17 +278,17 @@ learnjs.saveAnswer = function(problemId, answer){
 /**
  * @description Dynamo get answer
  */
-learnjs.fetchAnswer = function(problemId){
-    return learnjs.identity.then(function(identity){
+learnjs.fetchAnswer = function (problemId) {
+    return learnjs.identity.then(function (identity) {
         var db = new AWS.DynamoDB.DocumentClient();
         var item = {
-            TableName : 'learnjs',
-            Key:{
+            TableName: 'learnjs',
+            Key: {
                 userId: identity.id,
                 problemId: problemId
             }
         };
-        return learnjs.sendDBRequest(db.get(item),function(){
+        return learnjs.sendDBRequest(db.get(item), function () {
             learnjs.fetchAnswer(problemId);
         });
     });
@@ -297,16 +297,16 @@ learnjs.fetchAnswer = function(problemId){
 /**
  * @description Dynamo get count
  */
-learnjs.fetchCount = function(problemId){
-    return learnjs.identity.then(function(identity){
+learnjs.fetchCount = function (problemId) {
+    return learnjs.identity.then(function (identity) {
         var db = new AWS.DynamoDB.DocumentClient();
         var params = {
             TableName: 'learnjs',
             Select: 'COUNT',
             FilterExpression: 'problemId = :problemId',
-            ExpressionAttributeValues:{ ':problemId':problemId}
+            ExpressionAttributeValues: { ':problemId': problemId }
         };
-        return learnjs.sendDBRequest(db.scan(params),function(){
+        return learnjs.sendDBRequest(db.scan(params), function () {
             return learnjs.fetchCount(problemId);
         });
     });
